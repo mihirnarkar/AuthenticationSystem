@@ -2,11 +2,15 @@ package in.mindcraft.auth2;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +22,7 @@ public class LoginController {
     private JdbcTemplate jdbcTemplate;
 
     @PostMapping("/login")
-    public String login(@RequestBody User user) {
+    public ResponseEntity<Map<String, String>> login(@RequestBody User user) {
         String sql = "SELECT * FROM users WHERE username = ?";
         List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, user.getUsername());
 
@@ -27,20 +31,23 @@ public class LoginController {
             // Now, hash the provided password with SHA-256
             String providedPassword = user.getPassword();
             String providedPasswordHash = hashWithSHA256(providedPassword);
-            
-            // Print the hashed password in the console
-            System.out.println("Hashed Password: " + providedPasswordHash);
 
             // Retrieve the stored password hash from the database
             String storedPasswordHash = (String) result.get(0).get("password");
 
             // Compare the hashed password provided by the user with the stored hash
             if (providedPasswordHash.equals(storedPasswordHash)) {
-                return "Login successful";
+                Map<String, String> response = new HashMap<>();
+                response.put("status", "success");
+                response.put("message", "Login successful");
+                return ResponseEntity.ok(response);
             }
         }
-        
-        return "Login failed. Invalid username or password.";
+
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "error");
+        response.put("message", "Login failed. Invalid username or password.");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     // Helper method to hash a string with SHA-256
@@ -58,5 +65,11 @@ public class LoginController {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 hashing algorithm not available.", e);
         }
+    }
+
+
+    @GetMapping("/hello")
+    public String hello(){
+        return "hello";
     }
 }
